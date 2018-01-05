@@ -67,12 +67,13 @@ public class ViewController implements Initializable {
     private final String MENU_LIST = "Lista";
     private final String MENU_EXPORT = "Exportálás";
     private final String MENU_EXIT = "Kilépés";
+    private final DB db = new DB();
 
-    private final ObservableList<Person> data
-            = FXCollections.observableArrayList(
-                    new Person("Szabó", "Gyula", "gyuszi.teszt@example.com"),
-                    new Person("Bourne", "Jason", "secret@citromail.hu"),
-                    new Person("Scott", "Michael", "thatswhatshesaid@example.com"));
+    private final ObservableList<Person> data = FXCollections.observableArrayList();
+//            = FXCollections.observableArrayList(
+//                    new Person("Szabó", "Gyula", "gyuszi.teszt@example.com"),
+//                    new Person("Bourne", "Jason", "secret@citromail.hu"),
+//                    new Person("Scott", "Michael", "thatswhatshesaid@example.com"));
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
@@ -85,7 +86,9 @@ public class ViewController implements Initializable {
     private void addContact(ActionEvent event) {
         String email = inputEmail.getText();
         if (email.length() > 3 && email.contains("@") && email.contains(".")) {
-            data.add(new Person(inputLastName.getText(), inputFirstName.getText(), email));
+            Person newPerson = new Person(inputLastName.getText(), inputFirstName.getText(), email);
+            data.add(newPerson);
+            db.addContact(newPerson);
             inputLastName.clear();
             inputFirstName.clear();
             inputEmail.clear();
@@ -95,8 +98,8 @@ public class ViewController implements Initializable {
     @FXML
     private void exportList(ActionEvent event) {
         String fileName = inputExportName.getText();
-        fileName = fileName.replaceAll("\\s+","");
-        
+        fileName = fileName.replaceAll("\\s+", "");
+
         if (fileName != null && fileName != "") {
             PdfGeneration pdfCreator = new PdfGeneration();
             pdfCreator.pdfGeneration(fileName, data);
@@ -112,8 +115,9 @@ public class ViewController implements Initializable {
                 new EventHandler<TableColumn.CellEditEvent<Person, String>>() {
             @Override
             public void handle(TableColumn.CellEditEvent<Person, String> t) {
-                ((Person) t.getTableView().getItems().get(
-                        t.getTablePosition().getRow())).setLastName(t.getNewValue());
+                Person actualPerson = (Person) t.getTableView().getItems().get(t.getTablePosition().getRow());
+                actualPerson.setLastName(t.getNewValue());
+                db.updateContact(actualPerson);
             }
         }
         );
@@ -126,8 +130,9 @@ public class ViewController implements Initializable {
                 new EventHandler<TableColumn.CellEditEvent<Person, String>>() {
             @Override
             public void handle(TableColumn.CellEditEvent<Person, String> t) {
-                ((Person) t.getTableView().getItems().get(
-                        t.getTablePosition().getRow())).setFirstName(t.getNewValue());
+                Person actualPerson = (Person) t.getTableView().getItems().get(t.getTablePosition().getRow());
+                actualPerson.setFirstName(t.getNewValue());
+                db.updateContact(actualPerson);
             }
         }
         );
@@ -140,13 +145,16 @@ public class ViewController implements Initializable {
                 new EventHandler<TableColumn.CellEditEvent<Person, String>>() {
             @Override
             public void handle(TableColumn.CellEditEvent<Person, String> t) {
-                ((Person) t.getTableView().getItems().get(
-                        t.getTablePosition().getRow())).setEmail(t.getNewValue());
+                Person actualPerson = (Person) t.getTableView().getItems().get(t.getTablePosition().getRow());
+                actualPerson.setEmail(t.getNewValue());
+                db.updateContact(actualPerson);
             }
         }
         );
 
         table.getColumns().addAll(lastNameCol, firstNameCol, emailCol);
+
+        data.addAll(db.getAllContacts());
 
         table.setItems(data);
     }
@@ -186,12 +194,12 @@ public class ViewController implements Initializable {
                             selectedItem.setExpanded(true);
                             break;
                         case MENU_LIST:
-                            contactPane.setVisible(true);
-                            exportPane.setVisible(false);
-                            break;
-                        case MENU_EXPORT:
                             contactPane.setVisible(false);
                             exportPane.setVisible(true);
+                            break;
+                        case MENU_EXPORT:
+                            contactPane.setVisible(true);
+                            exportPane.setVisible(false);
                             break;
                         case MENU_EXIT:
                             System.exit(0);
